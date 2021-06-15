@@ -1,9 +1,6 @@
 import com.azure.cosmos.*;
 import com.azure.cosmos.models.*;
 import com.azure.cosmos.util.CosmosPagedIterable;
-import models.Client;
-import models.Offer;
-import models.Office;
 
 import java.util.ArrayList;
 import java.util.Scanner;
@@ -17,7 +14,7 @@ public class Main {
     private static CosmosContainer offices;
     private static CosmosContainer offers;
 
-    public static void save(CosmosContainer clients) {
+    public static void saveClients(CosmosContainer clients) {
         Client client1 = new Client().builder()
                 .id("1")
                 .partitionKey("1")
@@ -45,10 +42,18 @@ public class Main {
                 .phoneNumer("+48-735-5559-04")
                 .build();
 
-
+        try {
         clients.createItem(client1, new PartitionKey(client1.getPartitionKey()), new CosmosItemRequestOptions());
         clients.createItem(client2, new PartitionKey(client2.getPartitionKey()), new CosmosItemRequestOptions());
         clients.createItem(client3, new PartitionKey(client3.getPartitionKey()), new CosmosItemRequestOptions());
+        } catch (Exception ex) {
+            System.out.println(ex.getMessage());
+            ex.printStackTrace();
+        }
+
+    }
+
+    public static void saveOffice(CosmosContainer offices) {
 
         Office office1 = new Office().builder()
                 .id("1")
@@ -63,9 +68,18 @@ public class Main {
                 .address("Kielecka")
                 .rating(5)
                 .build();
+        try {
+        offices.createItem(office1, new PartitionKey(office1.getPartitionKey()), new CosmosItemRequestOptions());
+        offices.createItem(office2, new PartitionKey(office2.getPartitionKey()), new CosmosItemRequestOptions());
 
-        clients.createItem(office1, new PartitionKey(office1.getPartitionKey()), new CosmosItemRequestOptions());
-        clients.createItem(office2, new PartitionKey(office2.getPartitionKey()), new CosmosItemRequestOptions());
+    } catch (Exception ex) {
+        System.out.println(ex.getMessage());
+        ex.printStackTrace();
+    }
+
+    }
+
+    public static void saveOffer(CosmosContainer offers) {
 
         Offer offer1 = new Offer().builder()
                 .id("1")
@@ -94,9 +108,15 @@ public class Main {
                 .price(222)
                 .build();
 
-        clients.createItem(offer1, new PartitionKey(offer1.getPartitionKey()), new CosmosItemRequestOptions());
-        clients.createItem(offer2, new PartitionKey(offer2.getPartitionKey()), new CosmosItemRequestOptions());
-        clients.createItem(offer3, new PartitionKey(offer3.getPartitionKey()), new CosmosItemRequestOptions());
+        try {
+        offers.createItem(offer1, new PartitionKey(offer1.getPartitionKey()), new CosmosItemRequestOptions());
+        offers.createItem(offer2, new PartitionKey(offer2.getPartitionKey()), new CosmosItemRequestOptions());
+        offers.createItem(offer3, new PartitionKey(offer3.getPartitionKey()), new CosmosItemRequestOptions());
+        } catch (Exception ex) {
+            System.out.println(ex.getMessage());
+            ex.printStackTrace();
+        }
+
 
     }
 
@@ -108,6 +128,12 @@ public class Main {
                     .readItem(String.valueOf(officeId), new PartitionKey(String.valueOf(officeId)), Client.class);
             offices.deleteItem(item.getItem(), new CosmosItemRequestOptions());
         }
+
+    public static void deleteAll(){
+        clients.delete();
+        offices.delete();
+        offers.delete();
+    }
 
 
     private static void update() {
@@ -147,30 +173,28 @@ public class Main {
     }
 
     private static void download() {
-        try {
+
             CosmosQueryRequestOptions queryOptions = new CosmosQueryRequestOptions();
             queryOptions.setQueryMetricsEnabled(true);
-            CosmosPagedIterable<Client> clientsList = clients
-                    .queryItems("SELECT * FROM Client", queryOptions, Client.class);
+
+            CosmosPagedIterable<Client> clientsList = clients.queryItems("SELECT * FROM Client", queryOptions, Client.class);
             clientsList.forEach(System.out::println);
             System.out.println();
-            CosmosPagedIterable<Offer> offer1 = offers.queryItems("SELECT * FROM Offer", queryOptions, Offer.class);
-            offer1.forEach(System.out::println);
-            System.out.println();
-            CosmosPagedIterable<Office> officesList = offices
-                    .queryItems("SELECT * FROM Office", queryOptions, Office.class);
+
+            CosmosPagedIterable<Office> officesList = offices.queryItems("SELECT * FROM Office", queryOptions, Office.class);
             officesList.forEach(System.out::println);
 
-        } catch (CosmosException e) {
-            System.err.println(String.format(e.getMessage()));
-        }
+            CosmosPagedIterable<Offer> offerList = offers.queryItems("SELECT * FROM Offer", queryOptions, Offer.class);
+            offerList.forEach(System.out::println);
+            System.out.println();
+
     }
 
 
     public static void main(String[] args) {
 
         ArrayList<String> preferredRegions = new ArrayList<>();
-        preferredRegions.add("West US");
+        preferredRegions.add("Warsaw");
 
         client = new CosmosClientBuilder()
                 .endpoint(Connection.HOST)
@@ -187,7 +211,7 @@ public class Main {
         String option = "";
         while (!option.equals("0")) {
             System.out.println("Pick the option: ");
-            System.out.println("1.Save \n2.Update \n3.Delete all \n4.Delete only one book \n5.Download \n6.Download books by rating \n0.Exit");
+            System.out.println("1.Save \n2.Update \n3.Delete office by ID \n4.Delete all tables \n5.Download all tables \n6.Download offers by price \n0.Exit");
             option = scan.nextLine();
             switch (option) {
                 case "0":
@@ -195,26 +219,28 @@ public class Main {
                     break;
                 case "1":
                     System.out.println("Save");
-                    save(clients);
+                    saveClients(clients);
+                    saveOffice(offices);
+                    saveOffer(offers);
                     break;
                 case "2":
                     System.out.println("Update");
                     update();
                     break;
                 case "3":
-                    System.out.println("Delete all");
-                    //deleteAll();
-                    break;
-                case "4":
-                    System.out.println("Delete only one book");
+                    System.out.println("Delete office by ID");
                     delete();
                     break;
+                case "4":
+                    System.out.println("Delete all tables");
+                    deleteAll();
+                    break;
                 case "5":
-                    System.out.println("Download");
+                    System.out.println("Download all tables");
                     download();
                     break;
                 case "6":
-                    System.out.println("Download books by rating");
+                    System.out.println("Download by price");
                     downloadByPrice();
                     break;
             }
